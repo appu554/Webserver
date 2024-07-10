@@ -1,16 +1,25 @@
 const express = require("express");
-const { join } = require("path");
+const bodyParser = require("body-parser");
+const path = require("path");
 const authRoutes = require("./api/auth");
 const abdmRoutes = require("./api/abdm");
 const webhookRoutes = require("./api/webhook");
 
 const app = express();
-app.use(express.json());
-app.use(express.static(join(__dirname, "public")));
+
+// Middleware
+app.use(bodyParser.json());
+app.use(express.static(path.join(__dirname, "public")));
+
+// Debugging middleware
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+  next();
+});
 
 let responses = [];
 
-// Polling route to check for webhook responses
+// Polling route
 app.get("/api/poll-responses", (req, res) => {
   if (responses.length > 0) {
     return res.json({ status: "success", data: responses });
@@ -19,13 +28,27 @@ app.get("/api/poll-responses", (req, res) => {
   }
 });
 
-// Other routes
+// Routes
 app.use("/api", authRoutes);
 app.use("/api", abdmRoutes);
 app.use("/api", webhookRoutes);
+
+// Catch-all route for debugging
+app.use("*", (req, res) => {
+  res.status(404).send(`Cannot ${req.method} ${req.url}`);
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).send("Something broke!");
+});
 
 // Server setup
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
+  console.log(
+    `Webhook route should be available at http://localhost:${port}/api/webhook`
+  );
 });

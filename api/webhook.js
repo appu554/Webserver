@@ -1,40 +1,20 @@
-const express = require("express");
-const { generateToken } = require("../middleware/auth");
+let responses = [];
 
-const router = express.Router();
-
-let pendingRequests = {};
-let connections = {};
-
-router.post("/webhook", (req, res) => {
-  const { requestId, data } = req.body;
-
-  if (requestId && data) {
-    const encryptedData = generateToken({
-      userId: data.userId,
-      role: data.role,
-      data: data,
-    });
-    responses.push({ requestId, encryptedData });
-    return res.status(200).send("Webhook data received");
+module.exports = (req, res) => {
+  if (req.method === "POST") {
+    console.log("Received POST webhook:", req.body);
+    const { requestId, data } = req.body;
+    if (requestId && data) {
+      responses.push({ requestId, data });
+      res.status(200).send("Webhook data received");
+    } else {
+      res.status(400).send("Invalid webhook payload");
+    }
+  } else if (req.method === "GET") {
+    console.log("Received GET webhook request");
+    res.status(200).send("Webhook GET route is working");
   } else {
-    return res.status(400).send("Invalid webhook payload");
+    res.setHeader("Allow", ["GET", "POST"]);
+    res.status(405).end(`Method ${req.method} Not Allowed`);
   }
-
-  // if (pendingRequests[requestId]) {
-  //   const client = connections[requestId];
-  //   if (client && client.readyState === WebSocket.OPEN) {
-  //     const encryptedData = generateToken({
-  //       userId: data.userId,
-  //       role: data.role,
-  //       data: data,
-  //     });
-  //     client.send(JSON.stringify({ encryptedData }));
-  //     client.close(); // Close the WebSocket connection after sending the response
-  //   }
-
-  //   delete pendingRequests[requestId];
-  // }
-});
-
-module.exports = router;
+};
