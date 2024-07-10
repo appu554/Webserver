@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Webhook Responses</title>
+    <script>
+      async function pollServer() {
+        try {
+          const response = await fetch(`/api/poll-responses`);
+          const result = await response.json();
+          const responseContainer = document.getElementById("responses");
+          responseContainer.innerHTML = ""; // Clear previous responses
+
+          if (result.status === "success") {
+            result.data.forEach((item) => {
+              const pre = document.createElement("pre");
+              pre.textContent = JSON.stringify(item, null, 2);
+              responseContainer.appendChild(pre);
+            });
+          } else {
+            const pre = document.createElement("pre");
+            pre.textContent = "Waiting for responses...";
+            responseContainer.appendChild(pre);
+          }
+
+          // Continue polling every second
+          setTimeout(pollServer, 1000);
+        } catch (error) {
+          console.error("Error polling server:", error);
+        }
+      }
+
+      document.addEventListener("DOMContentLoaded", (event) => {
+        pollServer();
+      });
+    </script>
+  </head>
+  <body>
+    <h1>Webhook Responses</h1>
+    <div id="responses">Waiting for responses...</div>
+  </body>
+</html>
