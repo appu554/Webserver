@@ -104,34 +104,97 @@
 // // For Vercel
 // module.exports = app;
 
+// const express = require("express");
+// const bodyParser = require("body-parser");
+// const path = require("path");
+// const webhookRoutes = require("./api/webhook");
+
+// const app = express();
+
+// app.use(bodyParser.json({ limit: "10mb" }));
+// app.use(bodyParser.urlencoded({ extended: true, limit: "10mb" }));
+
+// app.use(express.static(path.join(__dirname, "public")));
+
+// app.use((req, res, next) => {
+//   console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+//   next();
+// });
+
+// app.use("/api", webhookRoutes);
+
+// app.get("/", (req, res) => {
+//   res.sendFile(path.join(__dirname, "public", "index.html"));
+// });
+
+// app.use("*", (req, res) => {
+//   console.log(`404 - Not Found: ${req.method} ${req.url}`);
+//   res.status(404).send(`Cannot ${req.method} ${req.url}`);
+// });
+
+// app.use((err, req, res, next) => {
+//   console.error("Error:", err);
+//   res.status(500).send("Something broke! Check server logs for details.");
+// });
+
+// module.exports = app;
+
 const express = require("express");
 const bodyParser = require("body-parser");
 const path = require("path");
-const webhookRoutes = require("./api/webhook");
 
 const app = express();
 
-app.use(bodyParser.json({ limit: "10mb" }));
-app.use(bodyParser.urlencoded({ extended: true, limit: "10mb" }));
+let webhookData = [];
 
-app.use(express.static(path.join(__dirname, "public")));
+// Parse raw body
+app.use(bodyParser.raw({ type: "*/*", limit: "10mb" }));
 
+// Logging middleware
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
   next();
 });
 
-app.use("/api", webhookRoutes);
+// Root-level handler for all methods
+app.all("*", (req, res) => {
+  if (req.url === "/favicon.ico") {
+    return res.status(204).end();
+  }
 
-app.get("/", (req, res) => {
+  const webhook = {
+    id: Date.now().toString(),
+    timestamp: new Date().toISOString(),
+    method: req.method,
+    headers: req.headers,
+    query: req.query,
+    body: req.body.toString("utf8"),
+    url: req.originalUrl,
+    path: req.path,
+    ip: req.ip,
+  };
+
+  console.log("Received request:", JSON.stringify(webhook, null, 2));
+  webhookData.unshift(webhook);
+
+  if (webhookData.length > 100) {
+    webhookData = webhookData.slice(0, 100);
+  }
+
+  res.status(200).send("Request received successfully");
+});
+
+// Route to view webhooks
+app.get("/view-webhooks", (req, res) => {
+  res.json(webhookData);
+});
+
+// Serve a simple HTML page to view webhooks
+app.get("/view", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-app.use("*", (req, res) => {
-  console.log(`404 - Not Found: ${req.method} ${req.url}`);
-  res.status(404).send(`Cannot ${req.method} ${req.url}`);
-});
-
+// Error handling middleware
 app.use((err, req, res, next) => {
   console.error("Error:", err);
   res.status(500).send("Something broke! Check server logs for details.");

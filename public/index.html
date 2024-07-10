@@ -15,18 +15,12 @@
       >
         Refresh
       </button>
-      <button
-        id="clearBtn"
-        class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded mb-4 ml-2"
-      >
-        Clear All
-      </button>
       <div id="webhooks" class="space-y-4"></div>
     </div>
 
     <script>
       function fetchWebhooks() {
-        fetch("/api/webhooks")
+        fetch("/view-webhooks")
           .then((response) => response.json())
           .then((data) => {
             const webhooksDiv = document.getElementById("webhooks");
@@ -39,15 +33,10 @@
                             <p>Method: ${webhook.method}</p>
                             <p>URL: ${webhook.url}</p>
                             <pre class="mt-2 bg-gray-100 p-2 rounded">${JSON.stringify(
-                              webhook.body,
+                              webhook,
                               null,
                               2
                             )}</pre>
-                            <button class="deleteBtn bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded mt-2" data-id="${
-                              webhook.id
-                            }">
-                                Delete
-                            </button>
                         `;
               webhooksDiv.appendChild(webhookDiv);
             });
@@ -57,21 +46,6 @@
       document
         .getElementById("refreshBtn")
         .addEventListener("click", fetchWebhooks);
-
-      document.getElementById("clearBtn").addEventListener("click", () => {
-        fetch("/api/webhooks", { method: "DELETE" }).then(() =>
-          fetchWebhooks()
-        );
-      });
-
-      document.getElementById("webhooks").addEventListener("click", (e) => {
-        if (e.target.classList.contains("deleteBtn")) {
-          const id = e.target.getAttribute("data-id");
-          fetch(`/api/webhooks/${id}`, { method: "DELETE" }).then(() =>
-            fetchWebhooks()
-          );
-        }
-      });
 
       fetchWebhooks();
     </script>
