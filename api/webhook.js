@@ -1,39 +1,48 @@
 const express = require("express");
 const router = express.Router();
 
-let abdmResponses = [];
+let webhookData = [];
 
 router.post("/abdm-callback", (req, res) => {
-  console.log(
-    "Received ABDM POST callback. Body:",
-    JSON.stringify(req.body, null, 2)
-  );
+  const webhook = {
+    id: Date.now().toString(),
+    timestamp: new Date().toISOString(),
+    method: req.method,
+    headers: req.headers,
+    query: req.query,
+    body: req.body,
+    url: req.originalUrl,
+  };
 
-  // Store the entire payload without validation
-  abdmResponses.push({
-    payload: req.body,
-    timestamp: new Date(),
-  });
+  console.log("Received webhook:", JSON.stringify(webhook, null, 2));
+  webhookData.unshift(webhook); // Add to the beginning of the array
 
-  // Respond with success regardless of payload structure
-  res.status(200).send("ABDM callback received and stored");
+  // Keep only the last 100 webhooks
+  if (webhookData.length > 100) {
+    webhookData = webhookData.slice(0, 100);
+  }
+
+  res.status(200).send("Webhook received successfully");
 });
 
-router.get("/abdm-callback", (req, res) => {
-  console.log("Received ABDM GET request");
-  res
-    .status(200)
-    .send("ABDM GET route is working. Note: Callbacks should use POST.");
+router.get("/webhooks", (req, res) => {
+  res.json(webhookData);
 });
 
-router.get("/abdm-responses", (req, res) => {
-  res.json(abdmResponses);
+router.delete("/webhooks/:id", (req, res) => {
+  const id = req.params.id;
+  const index = webhookData.findIndex((webhook) => webhook.id === id);
+  if (index !== -1) {
+    webhookData.splice(index, 1);
+    res.status(200).send("Webhook deleted successfully");
+  } else {
+    res.status(404).send("Webhook not found");
+  }
 });
 
-// New route to clear stored responses
-router.post("/clear-responses", (req, res) => {
-  abdmResponses = [];
-  res.status(200).send("All stored responses cleared");
+router.delete("/webhooks", (req, res) => {
+  webhookData = [];
+  res.status(200).send("All webhooks cleared");
 });
 
 module.exports = router;
