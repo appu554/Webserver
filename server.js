@@ -62,6 +62,10 @@ const app = express();
 
 app.use(bodyParser.json());
 
+app.get("/api/test", (req, res) => {
+  res.status(200).send("Test route is working");
+});
+
 // Debugging middleware
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
