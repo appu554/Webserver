@@ -25,7 +25,7 @@ const router = express.Router();
 // In-memory storage for ABDM responses. In a production environment, consider using a database.
 let abdmResponses = [];
 
-router.post("/abdm-callback", (req, res) => {
+router.get("/abdm-callback", (req, res) => {
   console.log("Received ABDM callback:", req.body);
   const { requestId, response } = req.body;
   if (requestId && response) {
